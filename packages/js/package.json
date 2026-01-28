@@ -1,5 +1,5 @@
 {
-  "name": "echostash",
+  "name": "@goreal-ai/echostash",
   "version": "1.0.0",
   "description": "The universal prompt SDK. Fetch prompts from any PLP-compliant library and use them with any AI provider.",
   "type": "module",
@@ -57,7 +57,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/GoReal-AI/echostash-sdk"
+    "url": "https://github.com/GoReal-AI/echostash-sdks"
   },
   "homepage": "https://echostash.com",
   "devDependencies": {
