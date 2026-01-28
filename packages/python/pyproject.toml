@@ -1,0 +1,65 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "echostash"
+version = "1.0.0"
+description = "The universal prompt SDK. Fetch prompts from any PLP-compliant library and use them with any AI provider."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [
+    { name = "GoReal AI", email = "support@echostash.com" }
+]
+keywords = [
+    "prompt",
+    "llm",
+    "ai",
+    "openai",
+    "anthropic",
+    "langchain",
+    "plp",
+    "echostash",
+    "prompt-management"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "requests>=2.28.0",
+    "typing-extensions>=4.0.0;python_version<'3.11'",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "responses>=0.23.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
+]
+
+[project.urls]
+Homepage = "https://echostash.com"
+Documentation = "https://echostash.com/docs/sdk"
+Repository = "https://github.com/GoReal-AI/echostash-sdk"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/echostash"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.mypy]
+python_version = "3.9"
+strict = true

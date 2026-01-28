@@ -1,0 +1,73 @@
+{
+  "name": "echostash",
+  "version": "1.0.0",
+  "description": "The universal prompt SDK. Fetch prompts from any PLP-compliant library and use them with any AI provider.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./providers": {
+      "import": {
+        "types": "./dist/providers/index.d.ts",
+        "default": "./dist/providers/index.js"
+      },
+      "require": {
+        "types": "./dist/providers/index.d.cts",
+        "default": "./dist/providers/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "prompt",
+    "llm",
+    "ai",
+    "openai",
+    "anthropic",
+    "langchain",
+    "vercel-ai",
+    "plp",
+    "echostash",
+    "prompt-management"
+  ],
+  "author": "GoReal AI",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GoReal-AI/echostash-sdk"
+  },
+  "homepage": "https://echostash.com",
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0",
+    "eslint": "^8.55.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
