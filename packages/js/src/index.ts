@@ -51,8 +51,32 @@ export type {
   ContentBlock,
   TextContent,
   ImageContent,
+  ToolCallContentBlock,
 
-  // Provider message types
+  // Message & Tool types
+  MessageRole,
+  Message,
+  ToolDefinition,
+
+  // Provider result types (Messages + Tools)
+  OpenAIPromptResult,
+  AnthropicPromptResult,
+  GooglePromptResult,
+  VercelPromptResult,
+  LangChainPromptResult,
+
+  // Server-side render types
+  VersionSpecifier,
+  RenderRequest,
+  RenderResponse,
+  RenderResult,
+  BatchRenderItem,
+  BatchRenderResult,
+  BatchRenderResponse,
+  ObservationItem,
+  ObservationBatchRequest,
+
+  // Provider message types (legacy single-message)
   OpenAIMessage,
   OpenAIContentPart,
   AnthropicMessage,

@@ -18,8 +18,112 @@ export interface ImageContent {
   };
 }
 
-export type ContentBlock = TextContent | ImageContent;
+export interface ToolCallContentBlock {
+  type: 'tool_call';
+  tool_call: {
+    id?: string;
+    name: string;
+    arguments: Record<string, unknown>;
+  };
+}
+
+export type ContentBlock = TextContent | ImageContent | ToolCallContentBlock;
 export type PromptContent = string | ContentBlock[];
+
+// ============================================================================
+// Message & Tool Types
+// ============================================================================
+
+export type MessageRole = 'system' | 'user' | 'assistant';
+
+export interface Message {
+  role: MessageRole;
+  content: ContentBlock[];
+}
+
+export interface ToolDefinition {
+  type: 'function';
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  };
+}
+
+// ============================================================================
+// Provider-specific Result Types (Messages + Tools)
+// ============================================================================
+
+export interface OpenAIPromptResult {
+  messages: Array<{
+    role: string;
+    content: string | Array<{ type: string; [key: string]: unknown }>;
+  }>;
+  tools?: Array<{
+    type: 'function';
+    function: { name: string; description: string; parameters: Record<string, unknown> };
+  }>;
+  model?: string;
+  temperature?: number;
+  max_tokens?: number;
+  top_p?: number;
+  [key: string]: unknown;
+}
+
+export interface AnthropicPromptResult {
+  system?: string;
+  messages: Array<{
+    role: string;
+    content: string | Array<{ type: string; [key: string]: unknown }>;
+  }>;
+  tools?: Array<{
+    name: string;
+    description: string;
+    input_schema: Record<string, unknown>;
+  }>;
+  model?: string;
+  max_tokens?: number;
+  temperature?: number;
+  [key: string]: unknown;
+}
+
+export interface GooglePromptResult {
+  contents: Array<{
+    role: string;
+    parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }>;
+  }>;
+  tools?: Array<{
+    functionDeclarations: Array<{
+      name: string;
+      description: string;
+      parameters: Record<string, unknown>;
+    }>;
+  }>;
+  generationConfig?: Record<string, unknown>;
+}
+
+export interface VercelPromptResult {
+  messages: Array<{
+    role: string;
+    content: string;
+  }>;
+  tools?: Record<string, {
+    description: string;
+    parameters: Record<string, unknown>;
+  }>;
+}
+
+export interface LangChainPromptResult {
+  messages: Array<{
+    type: string;
+    content: string;
+  }>;
+  tools?: Array<{
+    name: string;
+    description: string;
+    schema: Record<string, unknown>;
+  }>;
+}
 
 /**
  * Model configuration hints from the prompt
@@ -51,6 +155,16 @@ export interface PromptMeta {
 }
 
 /**
+ * Result from server-side rendering with meta template support.
+ * The `meta` field contains key-value pairs from the rendered meta template.
+ */
+export interface RenderResult {
+  messages: Array<{ role: string; content: string }>;
+  tools?: ToolDefinition[];
+  meta?: Record<string, unknown>;
+}
+
+/**
  * The universal prompt envelope - works with any PLP server
  */
 export interface Prompt {
@@ -60,6 +174,8 @@ export interface Prompt {
   content: PromptContent;
   meta: PromptMeta;
   parameterSymbol?: string;
+  messages?: Message[];
+  tools?: ToolDefinition[];
 }
 
 /**
@@ -74,12 +190,80 @@ export interface EchostashConfig {
   timeout?: number;
   /** Default parameter symbol for variable substitution (default: "{{}}") */
   defaultParameterSymbol?: string;
+  /** API mode: 'echostash' uses /api/sdk/ endpoints, 'plp' uses /v1/ endpoints (default: 'echostash') */
+  mode?: 'echostash' | 'plp';
+}
+
+// ============================================================================
+// Server-side Render Types
+// ============================================================================
+
+/**
+ * Version specifier for server-side render.
+ * - 'published': the published version
+ * - 'staging': the staging version
+ * - number: a specific version number
+ * - null/undefined: defaults to published
+ */
+export type VersionSpecifier = 'published' | 'staging' | number | null | undefined;
+
+/** Request body for POST /api/sdk/prompts/{id}/render */
+export interface RenderRequest {
+  version?: string | number | null;
+  variables?: Record<string, string>;
+}
+
+/** Response from POST /api/sdk/prompts/{id}/render */
+export interface RenderResponse {
+  content: string;
+  promptId: number;
+  versionNo: number;
+}
+
+/** A single item in a batch render request */
+export interface BatchRenderItem {
+  promptId: number;
+  version?: string | number | null;
+  variables?: Record<string, string>;
+}
+
+/** Result for a single prompt in a batch render response */
+export interface BatchRenderResult {
+  content: string;
+  versionNo: number;
+  error: string | null;
+}
+
+/** Response from POST /api/sdk/prompts/batch */
+export interface BatchRenderResponse {
+  results: Record<string, BatchRenderResult>;
+  successCount: number;
+  errorCount: number;
 }
 
 /**
  * Variables for prompt rendering
  */
 export type Variables = Record<string, string | number | boolean | null | undefined>;
+
+// ============================================================================
+// Observation Types
+// ============================================================================
+
+/** A single observation item for client-side render metrics */
+export interface ObservationItem {
+  promptId: number;
+  versionNo: number;
+  latencyMs: number;
+  success: boolean;
+  variableKeys?: string[];
+  timestamp?: string;
+}
+
+/** Request body for POST /api/sdk/observations */
+export interface ObservationBatchRequest {
+  items: ObservationItem[];
+}
 
 // ============================================================================
 // Provider-specific message types

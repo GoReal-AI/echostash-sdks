@@ -35,8 +35,41 @@ class ImageContent:
     image_url: ImageUrl = field(default_factory=lambda: ImageUrl(url=""))
 
 
-ContentBlock = Union[TextContent, ImageContent]
+@dataclass
+class ToolCallContentBlock:
+    """Tool call content block"""
+
+    type: Literal["tool_call"] = "tool_call"
+    tool_call: Dict[str, Any] = field(default_factory=lambda: {"name": "", "arguments": {}})
+
+
+ContentBlock = Union[TextContent, ImageContent, ToolCallContentBlock]
 PromptContent = Union[str, List[ContentBlock]]
+
+
+# ============================================================================
+# Message & Tool Types
+# ============================================================================
+
+MessageRole = Literal["system", "user", "assistant"]
+
+
+@dataclass
+class Message:
+    """A message with role and content blocks"""
+
+    role: MessageRole
+    content: List[Dict[str, Any]]  # ContentBlock dicts or dataclass instances
+
+
+@dataclass
+class ToolDefinition:
+    """A tool/function definition for function calling"""
+
+    type: str = "function"
+    function: Dict[str, Any] = field(
+        default_factory=lambda: {"name": "", "description": "", "parameters": {}}
+    )
 
 
 # ============================================================================
@@ -87,6 +120,8 @@ class Prompt:
     name: Optional[str] = None
     description: Optional[str] = None
     parameter_symbol: str = "{{}}"
+    messages: Optional[List[Message]] = None
+    tools: Optional[List[ToolDefinition]] = None
 
 
 # ============================================================================
@@ -102,6 +137,50 @@ class EchostashConfig:
     headers: Dict[str, str] = field(default_factory=dict)
     timeout: int = 10
     default_parameter_symbol: str = "{{}}"
+    mode: Literal["echostash", "plp"] = "echostash"
+
+
+# ============================================================================
+# Server-side Render Types
+# ============================================================================
+
+VersionSpecifier = Union[Literal["published", "staging"], int, None]
+
+
+@dataclass
+class RenderResponse:
+    """Response from POST /api/sdk/prompts/{id}/render"""
+
+    content: str
+    prompt_id: int
+    version_no: int
+
+
+@dataclass
+class BatchRenderItem:
+    """A single item in a batch render request"""
+
+    prompt_id: int
+    version: Union[str, int, None] = None
+    variables: Optional[Dict[str, str]] = None
+
+
+@dataclass
+class BatchRenderResult:
+    """Result for a single prompt in a batch render response"""
+
+    content: str
+    version_no: int
+    error: Optional[str] = None
+
+
+@dataclass
+class BatchRenderResponse:
+    """Response from POST /api/sdk/prompts/batch"""
+
+    results: Dict[str, BatchRenderResult]
+    success_count: int
+    error_count: int
 
 
 # ============================================================================
@@ -169,3 +248,20 @@ class LangChainMessage(TypedDict):
 
 # Type aliases for variables
 Variables = Dict[str, Any]
+
+
+# ============================================================================
+# Observation Types
+# ============================================================================
+
+
+@dataclass
+class ObservationItem:
+    """A single observation item for client-side render metrics"""
+
+    prompt_id: int
+    version_no: int
+    latency_ms: int
+    success: bool
+    variable_keys: Optional[List[str]] = None
+    timestamp: Optional[str] = None
