@@ -57,6 +57,9 @@ export type {
   MessageRole,
   Message,
   ToolDefinition,
+  SkillDefinition,
+  SkillDiscoveryResult,
+  DiscoverSkillsOptions,
 
   // Provider result types (Messages + Tools)
   OpenAIPromptResult,

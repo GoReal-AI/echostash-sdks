@@ -29,6 +29,9 @@ import type {
   ModelConfig,
   RenderResult,
   ObservationItem,
+  SkillDefinition,
+  SkillDiscoveryResult,
+  DiscoverSkillsOptions,
 } from './types.js';
 
 import {
@@ -187,6 +190,7 @@ export class LoadedPrompt {
   readonly parameterSymbol: string;
   readonly messages: Message[];
   readonly tools: ToolDefinition[];
+  readonly skills: SkillDefinition[];
   /** Meta config from rendered meta template (server-side render result) */
   readonly renderMeta: Record<string, unknown>;
 
@@ -198,6 +202,7 @@ export class LoadedPrompt {
     this.meta = prompt.meta;
     this.parameterSymbol = prompt.parameterSymbol ?? '{{}}';
     this.tools = prompt.tools ?? [];
+    this.skills = prompt.skills ?? [];
     this.messages = this.normalizeMessages(prompt);
     this.renderMeta = prompt.renderMeta ?? {};
   }
@@ -252,6 +257,7 @@ export class LoadedPrompt {
       parameterSymbol: this.parameterSymbol,
       messages: newMessages,
       tools: this.tools,
+      skills: this.skills,
       renderMeta: this.renderMeta,
     });
   }
@@ -341,7 +347,7 @@ export class LoadedPrompt {
     if (options && Object.keys(options).length > 0) {
       return toOpenAI(this.content, options);
     }
-    return toOpenAIPromptResult(this.messages, this.tools, this.getEffectiveModelConfig());
+    return toOpenAIPromptResult(this.messages, this.tools, this.getEffectiveModelConfig(), this.skills);
   }
 
   /**
@@ -373,7 +379,7 @@ export class LoadedPrompt {
     if (options && Object.keys(options).length > 0) {
       return toAnthropic(this.content, options);
     }
-    return toAnthropicPromptResult(this.messages, this.tools, this.getEffectiveModelConfig());
+    return toAnthropicPromptResult(this.messages, this.tools, this.getEffectiveModelConfig(), this.skills);
   }
 
   /**
@@ -412,7 +418,7 @@ export class LoadedPrompt {
     if (options && Object.keys(options).length > 0) {
       return toGoogle(this.content, options);
     }
-    return toGooglePromptResult(this.messages, this.tools, this.getEffectiveModelConfig());
+    return toGooglePromptResult(this.messages, this.tools, this.getEffectiveModelConfig(), this.skills);
   }
 
   /**
@@ -452,7 +458,7 @@ export class LoadedPrompt {
     if (options && Object.keys(options).length > 0) {
       return toVercel(this.content, options);
     }
-    return toVercelPromptResult(this.messages, this.tools, this.getEffectiveModelConfig());
+    return toVercelPromptResult(this.messages, this.tools, this.getEffectiveModelConfig(), this.skills);
   }
 
   /**
@@ -476,7 +482,7 @@ export class LoadedPrompt {
     if (options && Object.keys(options).length > 0) {
       return toLangChain(this.content, options);
     }
-    return toLangChainPromptResult(this.messages, this.tools, this.getEffectiveModelConfig());
+    return toLangChainPromptResult(this.messages, this.tools, this.getEffectiveModelConfig(), this.skills);
   }
 
   /**
@@ -511,6 +517,7 @@ export class LoadedPrompt {
       parameterSymbol: this.parameterSymbol,
       messages: this.messages,
       tools: this.tools,
+      skills: this.skills,
       ...(Object.keys(this.renderMeta).length > 0 && { renderMeta: this.renderMeta }),
     };
   }
@@ -739,6 +746,35 @@ export class Echostash {
    */
   get(promptId: string | number): PromptQuery {
     return this.prompt(promptId);
+  }
+
+  /**
+   * Fetch a skill by ID (alias for prompt)
+   */
+  skill(skillId: string | number): PromptQuery {
+    return this.prompt(skillId);
+  }
+
+  /**
+   * Discover available skills from the server.
+   * Only available in 'echostash' mode.
+   */
+  async discoverSkills(options?: DiscoverSkillsOptions): Promise<SkillDiscoveryResult[]> {
+    if (this.mode !== 'echostash') {
+      throw new EchostashError('Skill discovery is only available in echostash mode');
+    }
+
+    const params = new URLSearchParams();
+    if (options?.tagIds && options.tagIds.length > 0) {
+      params.set('tagIds', options.tagIds.join(','));
+    }
+    if (options?.query) {
+      params.set('query', options.query);
+    }
+
+    const queryString = params.toString();
+    const path = `/api/sdk/skills${queryString ? `?${queryString}` : ''}`;
+    return await this.request('GET', path);
   }
 
   /**
@@ -1016,11 +1052,13 @@ export class Echostash {
         id: data.id,
         name: data.name,
         description: data.description ?? data.meta?.description,
+        type: data.type,
         content: this.normalizeContent(data.content),
         meta: this.normalizeMeta(data.meta),
         parameterSymbol: data.parameterSymbol ?? this.defaultParameterSymbol,
         messages: this.normalizeServerMessages(data.messages),
         tools: this.normalizeServerTools(data.tools),
+        skills: data.skills,
       };
     }
 
@@ -1030,11 +1068,13 @@ export class Echostash {
         id: String(data.id),
         name: data.name,
         description: data.description,
+        type: data.type,
         content: this.normalizeContent(data.content),
         meta: this.normalizeMeta(data.promptMetaData ?? data.meta ?? {}),
         parameterSymbol: data.parameterSymbol ?? this.defaultParameterSymbol,
         messages: this.normalizeServerMessages(data.messages),
         tools: this.normalizeServerTools(data.tools),
+        skills: data.skills,
       };
     }
 

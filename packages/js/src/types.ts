@@ -154,6 +154,28 @@ export interface PromptMeta {
   [key: string]: unknown;
 }
 
+export interface SkillDefinition {
+  type: 'skill';
+  skill: {
+    name: string;
+    description: string;
+    source?: string;
+    parameters: Record<string, unknown>;
+  };
+}
+
+export interface SkillDiscoveryResult {
+  id: number;
+  name: string;
+  description: string;
+  tags: string[];
+}
+
+export interface DiscoverSkillsOptions {
+  tagIds?: number[];
+  query?: string;
+}
+
 /**
  * Result from server-side rendering with meta template support.
  * The `meta` field contains key-value pairs from the rendered meta template.
@@ -161,6 +183,7 @@ export interface PromptMeta {
 export interface RenderResult {
   messages: Array<{ role: string; content: string }>;
   tools?: ToolDefinition[];
+  skills?: SkillDefinition[];
   meta?: Record<string, unknown>;
 }
 
@@ -171,11 +194,13 @@ export interface Prompt {
   id: string;
   name?: string;
   description?: string;
+  type?: string;
   content: PromptContent;
   meta: PromptMeta;
   parameterSymbol?: string;
   messages?: Message[];
   tools?: ToolDefinition[];
+  skills?: SkillDefinition[];
 }
 
 /**

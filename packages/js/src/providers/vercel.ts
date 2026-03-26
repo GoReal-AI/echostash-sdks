@@ -3,7 +3,13 @@ import type {
   PromptContent,
   VercelMessage,
   VercelOptions,
+  Message,
+  ToolDefinition,
+  VercelPromptResult,
+  SkillDefinition,
 } from '../types.js';
+
+import { mergeToolsWithSkills } from './skills.js';
 
 /**
  * Convert prompt content to Vercel AI SDK message format
@@ -50,4 +56,38 @@ export function toCoreMessages(
   options: VercelOptions = {}
 ): Array<{ role: 'system' | 'user' | 'assistant'; content: string }> {
   return promptToVercel(prompt, options);
+}
+
+/**
+ * Convert messages + tools to Vercel AI SDK prompt result format
+ */
+export function toVercelPromptResult(
+  messages: Message[],
+  tools: ToolDefinition[] | undefined,
+  config: unknown,
+  skills?: SkillDefinition[],
+): VercelPromptResult {
+  const vercelMessages: VercelPromptResult['messages'] = messages.map((msg) => {
+    const text = msg.content
+      .filter((b) => b.type === 'text')
+      .map((b) => (b as { type: 'text'; text: string }).text)
+      .join('\n');
+    return { role: msg.role, content: text };
+  });
+
+  const result: VercelPromptResult = { messages: vercelMessages };
+
+  const allTools = mergeToolsWithSkills(tools, skills);
+  if (allTools && allTools.length > 0) {
+    const toolsMap: Record<string, { description: string; parameters: Record<string, unknown> }> = {};
+    for (const t of allTools) {
+      toolsMap[t.function.name] = {
+        description: t.function.description,
+        parameters: t.function.parameters,
+      };
+    }
+    result.tools = toolsMap;
+  }
+
+  return result;
 }

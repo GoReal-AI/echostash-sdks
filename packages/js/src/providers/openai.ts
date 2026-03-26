@@ -6,7 +6,13 @@ import type {
   OpenAIContentPart,
   OpenAIOptions,
   ModelConfig,
+  Message,
+  ToolDefinition,
+  OpenAIPromptResult,
+  SkillDefinition,
 } from '../types.js';
+
+import { mergeToolsWithSkills } from './skills.js';
 
 /**
  * Convert prompt content to OpenAI message format
@@ -79,4 +85,49 @@ export function extractOpenAIConfig(config?: ModelConfig): Record<string, unknow
 export function hasImages(content: PromptContent): boolean {
   if (typeof content === 'string') return false;
   return content.some((block) => block.type === 'image_url');
+}
+
+/**
+ * Convert messages + tools to OpenAI prompt result format
+ */
+export function toOpenAIPromptResult(
+  messages: Message[],
+  tools: ToolDefinition[] | undefined,
+  config: ModelConfig | undefined,
+  skills?: SkillDefinition[],
+): OpenAIPromptResult {
+  const result: OpenAIPromptResult = {
+    messages: messages.map((msg) => {
+      const content = msg.content;
+      if (content.length === 1 && content[0].type === 'text') {
+        return { role: msg.role, content: (content[0] as { type: 'text'; text: string }).text };
+      }
+      return {
+        role: msg.role,
+        content: content.map((block) => {
+          if (block.type === 'text') {
+            return { type: 'text', text: (block as { type: 'text'; text: string }).text };
+          }
+          if (block.type === 'image_url') {
+            return {
+              type: 'image_url',
+              image_url: {
+                url: (block as { type: 'image_url'; image_url: { url: string; detail?: string } }).image_url.url,
+                detail: (block as { type: 'image_url'; image_url: { url: string; detail?: string } }).image_url.detail ?? 'auto',
+              },
+            };
+          }
+          return { type: 'text', text: '' };
+        }),
+      };
+    }),
+    ...extractOpenAIConfig(config),
+  };
+
+  const allTools = mergeToolsWithSkills(tools, skills);
+  if (allTools && allTools.length > 0) {
+    result.tools = allTools;
+  }
+
+  return result;
 }
