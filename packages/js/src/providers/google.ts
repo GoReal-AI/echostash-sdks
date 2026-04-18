@@ -5,7 +5,13 @@ import type {
   GooglePart,
   GoogleOptions,
   ModelConfig,
+  Message,
+  ToolDefinition,
+  GooglePromptResult,
+  SkillDefinition,
 } from '../types.js';
+
+import { mergeToolsWithSkills } from './skills.js';
 
 /**
  * Convert prompt content to Google/Gemini message format
@@ -81,6 +87,59 @@ export function extractGoogleConfig(config?: ModelConfig): Record<string, unknow
 
   if (Object.keys(generationConfig).length > 0) {
     result.generationConfig = generationConfig;
+  }
+
+  return result;
+}
+
+/**
+ * Convert messages + tools to Google/Gemini prompt result format
+ */
+export function toGooglePromptResult(
+  messages: Message[],
+  tools: ToolDefinition[] | undefined,
+  config: ModelConfig | undefined,
+  skills?: SkillDefinition[],
+): GooglePromptResult {
+  const contents: GooglePromptResult['contents'] = messages.map((msg) => {
+    const role = msg.role === 'assistant' ? 'model' : msg.role === 'system' ? 'user' : msg.role;
+    const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [];
+
+    for (const block of msg.content) {
+      if (block.type === 'text') {
+        parts.push({ text: (block as { type: 'text'; text: string }).text });
+      } else if (block.type === 'image_url') {
+        const url = (block as { type: 'image_url'; image_url: { url: string } }).image_url.url;
+        if (url.startsWith('data:')) {
+          const match = url.match(/^data:([^;]+);base64,(.+)$/);
+          if (match) {
+            parts.push({ inlineData: { mimeType: match[1], data: match[2] } });
+            continue;
+          }
+        }
+        parts.push({ text: `[Image: ${url}]` });
+      }
+    }
+
+    return { role, parts };
+  });
+
+  const result: GooglePromptResult = { contents };
+
+  const googleConfig = extractGoogleConfig(config);
+  if (googleConfig.generationConfig) {
+    result.generationConfig = googleConfig.generationConfig as Record<string, unknown>;
+  }
+
+  const allTools = mergeToolsWithSkills(tools, skills);
+  if (allTools && allTools.length > 0) {
+    result.tools = [{
+      functionDeclarations: allTools.map((t) => ({
+        name: t.function.name,
+        description: t.function.description,
+        parameters: t.function.parameters,
+      })),
+    }];
   }
 
   return result;

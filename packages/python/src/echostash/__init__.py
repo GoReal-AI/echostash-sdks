@@ -40,6 +40,8 @@ from .types import (
     Message,
     MessageRole,
     ToolDefinition,
+    SkillDefinition,
+    SkillDiscoveryResult,
     EchostashConfig,
     VersionSpecifier,
     RenderResponse,
@@ -95,6 +97,8 @@ __all__ = [
     "Message",
     "MessageRole",
     "ToolDefinition",
+    "SkillDefinition",
+    "SkillDiscoveryResult",
     "EchostashConfig",
     # Server-side render types
     "VersionSpecifier",

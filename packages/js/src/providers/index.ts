@@ -11,6 +11,7 @@ export {
   promptToOpenAI,
   extractOpenAIConfig,
   hasImages,
+  toOpenAIPromptResult,
 } from './openai.js';
 
 // Anthropic
@@ -19,6 +20,7 @@ export {
   toAnthropicSystem,
   promptToAnthropic,
   extractAnthropicConfig,
+  toAnthropicPromptResult,
 } from './anthropic.js';
 
 // Google / Gemini
@@ -26,6 +28,7 @@ export {
   toGoogle,
   promptToGoogle,
   extractGoogleConfig,
+  toGooglePromptResult,
 } from './google.js';
 
 // Vercel AI SDK
@@ -33,6 +36,7 @@ export {
   toVercel,
   promptToVercel,
   toCoreMessages,
+  toVercelPromptResult,
 } from './vercel.js';
 
 // LangChain
@@ -41,4 +45,8 @@ export {
   promptToLangChain,
   toLangChainTemplate,
   toChatPromptTemplate,
+  toLangChainPromptResult,
 } from './langchain.js';
+
+// Skills
+export { buildSkillLoadingTool, mergeToolsWithSkills } from './skills.js';

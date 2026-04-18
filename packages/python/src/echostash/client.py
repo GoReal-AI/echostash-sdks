@@ -23,6 +23,8 @@ from .types import (
     ContentBlock,
     Message,
     ToolDefinition,
+    SkillDefinition,
+    SkillDiscoveryResult,
     EchostashConfig,
     Variables,
     OpenAIMessage,
@@ -191,6 +193,7 @@ class LoadedPrompt:
         self.meta = prompt.meta
         self.parameter_symbol = prompt.parameter_symbol
         self.tools: List[ToolDefinition] = prompt.tools or []
+        self.skills: List[SkillDefinition] = prompt.skills or []
         self.messages: List[Message] = self._normalize_messages(prompt)
 
     def _normalize_messages(self, prompt: Prompt) -> List[Message]:
@@ -243,6 +246,7 @@ class LoadedPrompt:
             parameter_symbol=self.parameter_symbol,
             messages=new_messages,
             tools=self.tools,
+            skills=self.skills,
         ))
 
     def vars(self, **variables: Any) -> LoadedPrompt:
@@ -295,7 +299,7 @@ class LoadedPrompt:
         """
         if role is not None:
             return to_openai(self.content, role)
-        return to_openai_prompt_result(self.messages, self.tools, self.meta.model_config)
+        return to_openai_prompt_result(self.messages, self.tools, self.meta.model_config, self.skills)
 
     def openai_config(self) -> Dict[str, Any]:
         """Get OpenAI-compatible model config from prompt metadata."""
@@ -322,7 +326,7 @@ class LoadedPrompt:
         """
         if role is not None:
             return to_anthropic(self.content, role)
-        return to_anthropic_prompt_result(self.messages, self.tools, self.meta.model_config)
+        return to_anthropic_prompt_result(self.messages, self.tools, self.meta.model_config, self.skills)
 
     def anthropic_system(self) -> str:
         """Get content as Anthropic system message (string)."""
@@ -345,7 +349,7 @@ class LoadedPrompt:
         """
         if role is not None:
             return to_google(self.content, role)
-        return to_google_prompt_result(self.messages, self.tools, self.meta.model_config)
+        return to_google_prompt_result(self.messages, self.tools, self.meta.model_config, self.skills)
 
     def gemini(
         self,
@@ -371,7 +375,7 @@ class LoadedPrompt:
         """
         if role is not None:
             return to_vercel(self.content, role)
-        return to_vercel_prompt_result(self.messages, self.tools, self.meta.model_config)
+        return to_vercel_prompt_result(self.messages, self.tools, self.meta.model_config, self.skills)
 
     def langchain(
         self,
@@ -386,7 +390,7 @@ class LoadedPrompt:
         """
         if message_type is not None:
             return to_langchain(self.content, message_type)
-        return to_langchain_prompt_result(self.messages, self.tools, self.meta.model_config)
+        return to_langchain_prompt_result(self.messages, self.tools, self.meta.model_config, self.skills)
 
     def langchain_template(self) -> Tuple[str, List[str]]:
         """Get as LangChain PromptTemplate-compatible format.
@@ -420,6 +424,7 @@ class LoadedPrompt:
             "parameter_symbol": self.parameter_symbol,
             "messages": self.messages,
             "tools": self.tools,
+            "skills": self.skills,
         }
 
 
@@ -612,6 +617,42 @@ class Echostash:
     def get(self, prompt_id: Union[str, int]) -> PromptQuery:
         """Alias for prompt()."""
         return self.prompt(prompt_id)
+
+    def skill(self, skill_id: Union[str, int]) -> PromptQuery:
+        """Fetch a skill by ID (alias for prompt)."""
+        return self.prompt(skill_id)
+
+    def discover_skills(
+        self,
+        tag_ids: Optional[List[int]] = None,
+        query: Optional[str] = None,
+    ) -> List[SkillDiscoveryResult]:
+        """Discover available skills from the server.
+
+        Only available in 'echostash' mode.
+        """
+        if self._mode != "echostash":
+            raise EchostashError("Skill discovery is only available in echostash mode")
+
+        params: List[str] = []
+        if tag_ids:
+            params.append(f"tagIds={','.join(str(t) for t in tag_ids)}")
+        if query:
+            params.append(f"query={query}")
+
+        query_string = "&".join(params)
+        path = f"/api/sdk/skills{'?' + query_string if query_string else ''}"
+        data = self._request("GET", path)
+
+        results = []
+        for item in data:
+            results.append(SkillDiscoveryResult(
+                id=item.get("id", 0),
+                name=item.get("name", ""),
+                description=item.get("description", ""),
+                tags=item.get("tags", []),
+            ))
+        return results
 
     def fetch_prompt(self, prompt_id: str, version: Optional[str] = None) -> Prompt:
         """Internal method to fetch a prompt from the server."""
@@ -880,11 +921,13 @@ class Echostash:
                 id=str(data["id"]),
                 name=data.get("name"),
                 description=data.get("description") or data.get("meta", {}).get("description"),
+                type=data.get("type"),
                 content=self._normalize_content(data["content"]),
                 meta=self._normalize_meta(data.get("meta", {})),
                 parameter_symbol=data.get("parameterSymbol", self._default_parameter_symbol),
                 messages=self._normalize_server_messages(data.get("messages")),
                 tools=self._normalize_server_tools(data.get("tools")),
+                skills=data.get("skills"),
             )
 
         # Handle Echostash format
@@ -893,11 +936,13 @@ class Echostash:
                 id=str(data["id"]),
                 name=data.get("name"),
                 description=data.get("description"),
+                type=data.get("type"),
                 content=self._normalize_content(data["content"]),
                 meta=self._normalize_meta(data.get("promptMetaData") or data.get("meta") or {}),
                 parameter_symbol=data.get("parameterSymbol", self._default_parameter_symbol),
                 messages=self._normalize_server_messages(data.get("messages")),
                 tools=self._normalize_server_tools(data.get("tools")),
+                skills=data.get("skills"),
             )
 
         raise EchostashError("Invalid prompt format received from server")

@@ -4,7 +4,13 @@ import type {
   LangChainMessage,
   LangChainMessageType,
   LangChainOptions,
+  Message,
+  ToolDefinition,
+  LangChainPromptResult,
+  SkillDefinition,
 } from '../types.js';
+
+import { mergeToolsWithSkills } from './skills.js';
 
 /**
  * Convert prompt content to LangChain message format
@@ -92,4 +98,41 @@ export function toChatPromptTemplate(
 ): Array<[string, string]> {
   const { template } = toLangChainTemplate(prompt);
   return [[role, template]];
+}
+
+/**
+ * Convert messages + tools to LangChain prompt result format
+ */
+export function toLangChainPromptResult(
+  messages: Message[],
+  tools: ToolDefinition[] | undefined,
+  config: unknown,
+  skills?: SkillDefinition[],
+): LangChainPromptResult {
+  const roleMap: Record<string, string> = {
+    system: 'system',
+    user: 'human',
+    assistant: 'ai',
+  };
+
+  const langchainMessages: LangChainPromptResult['messages'] = messages.map((msg) => {
+    const text = msg.content
+      .filter((b) => b.type === 'text')
+      .map((b) => (b as { type: 'text'; text: string }).text)
+      .join('\n');
+    return { type: roleMap[msg.role] ?? 'human', content: text };
+  });
+
+  const result: LangChainPromptResult = { messages: langchainMessages };
+
+  const allTools = mergeToolsWithSkills(tools, skills);
+  if (allTools && allTools.length > 0) {
+    result.tools = allTools.map((t) => ({
+      name: t.function.name,
+      description: t.function.description,
+      schema: t.function.parameters,
+    }));
+  }
+
+  return result;
 }

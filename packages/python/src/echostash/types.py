@@ -72,6 +72,26 @@ class ToolDefinition:
     )
 
 
+@dataclass
+class SkillDefinition:
+    """A skill definition for skill-based prompts"""
+
+    type: str = "skill"
+    skill: Dict[str, Any] = field(
+        default_factory=lambda: {"name": "", "description": "", "parameters": {}}
+    )
+
+
+@dataclass
+class SkillDiscoveryResult:
+    """Result from skill discovery endpoint"""
+
+    id: int = 0
+    name: str = ""
+    description: str = ""
+    tags: List[str] = field(default_factory=list)
+
+
 # ============================================================================
 # Model Configuration
 # ============================================================================
@@ -119,9 +139,11 @@ class Prompt:
     meta: PromptMeta = field(default_factory=PromptMeta)
     name: Optional[str] = None
     description: Optional[str] = None
+    type: Optional[str] = None
     parameter_symbol: str = "{{}}"
     messages: Optional[List[Message]] = None
     tools: Optional[List[ToolDefinition]] = None
+    skills: Optional[List[SkillDefinition]] = None
 
 
 # ============================================================================
