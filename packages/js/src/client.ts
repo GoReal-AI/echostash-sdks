@@ -773,7 +773,7 @@ export class Echostash {
     }
 
     const queryString = params.toString();
-    const path = `/api/sdk/skills${queryString ? `?${queryString}` : ''}`;
+    const path = `/api/sdk/skills/discover${queryString ? `?${queryString}` : ''}`;
     return await this.request('GET', path);
   }
 
