@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "echostash"
-version = "1.1.0"
+version = "1.2.0"
 description = "The universal prompt SDK. Fetch prompts from any PLP-compliant library and use them with any AI provider."
 readme = "README.md"
 license = "MIT"
